@@ -1,0 +1,11 @@
+name = "MieSeries"
+uuid = "5feb7518-587f-46d3-8212-e2e3c1d312ab"
+authors = ["Rodrigo Arrieta Candia <riarrieta@uc.cl>"]
+version = "0.1.0"
+
+[deps]
+Legendre = "7642852e-7f09-11e9-134e-0940411082b6"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
