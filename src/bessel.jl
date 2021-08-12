@@ -14,7 +14,7 @@ end
 """
     sphericalhankel2_and_derivatives(nu::UnitRange, x)
 
-Returns the spherical Hankel function of the second kind, its first and 
+Evaluates the spherical Hankel function of the second kind, its first and 
 second derivative, for orders `nu::UnitRange` and argument `x`.
 """
 function sphericalhankel2_and_derivatives(nu::UnitRange, x)
@@ -38,8 +38,19 @@ function sphericalhankel2_and_derivatives(nu::UnitRange, x)
         sph_dd[index] = n / x^2 * (x*sph_d[index] - sph[index]) - sph_d[index+1]
         n -= 1
     end
-    @assert length(sph[1:len]) == length(sph_d[1:len]) == 
-                                  length(sph_dd) ==
-                                  len
     return sph[1:len], sph_d[1:len], sph_dd
+end
+
+"""
+    riccatihankel2_and_derivatives(nu::UnitRange, x)
+
+Evaluates the spherical Riccati-Bessel Hankel function of the second kind, its first and 
+second derivative, for orders `nu::UnitRange` and argument `x`.
+"""
+function riccatihankel2_and_derivatives(nu::UnitRange, x)
+    sph, sph_d, sph_dd = sphericalhankel2_and_derivatives(nu, x)
+    rh = x.*sph
+    rh_d = sph + x.*sph_d
+    rh_dd = 2*sph_d + x.*sph_dd
+    return rh, rh_d, rh_dd
 end
