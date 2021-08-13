@@ -1,5 +1,38 @@
+"""
+    incident_planewave(mesh::Vector{SVector{3,Float64}}; k, expjω=false)
 
+Evaluates the electric field of a x-polarized plane wave traveling along 
+the z-direction. This field impinging on a PEC sphere give rise to the scattered field
+computed by [`mieseries`](@ref).
+# Arguments
+- `mesh::Vector{SVector{3,Float64}}`: list of points where the electric field is evaluated.
+- `k`: wavenumber.
+- `expjω`: set to `true` (`false`) if `exp(jω)` (`exp(-jω)`) time-harmonic dependence is used.
+"""
+function incident_planewave(mesh::Vector{SVector{3,Float64}}; k, expjω=false)
+    n_points = length(mesh)
+    planewave = Vector{SVector{3,ComplexF64}}(undef, n_points)
+    for i in 1:n_points
+        _, _, z = mesh[i]
+        planewave[i] = SVector{3,ComplexF64}(exp(-im*k*z), 0, 0)
+    end
+    # conjugate result if exp(-jω) time-harmonic dependence is used
+    if !expjω
+        planewave = conj(planewave)
+    end
+    return planewave
+end
+
+
+"""
+    mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=false)
+
+Evaluates the scattered field produced by an incident plane wave ([`incident_planewave`](@ref)) 
+on a PEC sphere. This scattered field is known as Mie series.
+Refer to: C. A. Balanis. Advanced Engineering Electromatnetics (2013), Chapter 11.8. 
+"""
 function mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=false)
+    isreal(k) || @error "Mie series is not working for complex wavenumbers"
     # compute Ricatti-Hankel functions, second kind 
     rh, rh_d, _ = riccatihankel2_and_derivatives(1:n_terms, k*a)
     # compute coefficients aₙ, bₙ, cₙ
@@ -41,18 +74,4 @@ function _mieseries(point::SVector{3,Float64}, bn, cn; k, n_terms)
     Es_y = sin_theta*sin_phi*Es_r + cos_theta*sin_phi*Es_theta + cos_phi*Es_phi
     Es_z = cos_theta*Es_r - sin_theta*Es_theta
     return SVector{3,ComplexF64}(Es_x, Es_y, Es_z)
-end
-
-function incident_planewave(mesh::Vector{SVector{3,Float64}}; k, expjω=false)
-    n_points = length(mesh)
-    planewave = Vector{SVector{3,ComplexF64}}(undef, n_points)
-    for i in 1:n_points
-        _, _, z = mesh[i]
-        planewave[i] = SVector{3,ComplexF64}(exp(-im*k*z), 0, 0)
-    end
-    # conjugate result if exp(-jω) time-harmonic dependence is used
-    if !expjω
-        planewave = conj(planewave)
-    end
-    return planewave
 end
