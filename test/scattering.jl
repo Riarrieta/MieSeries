@@ -22,8 +22,8 @@ mynorm(a) = (b=abs.(a); sqrt(b[1]^2+b[2]^2+b[3]^2))
                         cos(ϕ)) for ϕ in ϕrange for θ in θrange]
         mesh = a.*normals
         for k in [1,5,10]
-            Es = MieSeries.mieseries(mesh; k, a, n_terms)  # scattered field
-            Ei = MieSeries.incident_planewave(mesh; k)     # incident field
+            Es = mieseries(mesh; k, a, n_terms)  # scattered field
+            Ei = incident_planewave.(mesh; k)     # incident field
             Et = Es + Ei     # total field
             # test boundary condition 
             # n × Eᵗ = 0  on Γ
@@ -31,6 +31,9 @@ mynorm(a) = (b=abs.(a); sqrt(b[1]^2+b[2]^2+b[3]^2))
                 n = normals[i]
                 @test mynorm(mycross(n, Et[i])) < TOL
             end
+            # test conjugation
+            @test conj(Es) == mieseries(mesh; k, a, n_terms, expjω=true)
+            @test conj(Ei) == incident_planewave.(mesh; k, expjω=true)
         end
     end
 end
