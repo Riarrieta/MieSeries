@@ -1,12 +1,12 @@
 
 """
-    associated_legendre(x, l_max, m)
+    associated_legendre(x; l_max, m)
 
 Returns the associated Legendre polynomials `Pₗᵐ(x)` and their
 first derivative `(d/dx)Pₗᵐ(x)`, for `l=1,...,l_max`. The polynomials
 are unnormalized and include the Condon–Shortley phase.
 """
-function associated_legendre(x, l_max, m)
+function associated_legendre(x; l_max, m)
     abs(x) < 1 || @error "Argument 'x' must be between -1 and 1."
     plm = Legendre.Plm(0:l_max, m, x)
     # compute first derivate using recurrence
