@@ -21,6 +21,7 @@ end
 
 """
     mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=false)
+    mieseries(point::SVector{3,Float64}; k, a=1, n_terms=20, expjω=false)
 
 Evaluates the scattered field produced by an incident plane wave ([`incident_planewave`](@ref)) 
 on a PEC sphere. This scattered field is known as Mie series.
@@ -52,8 +53,12 @@ function mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=
     end
     return Es
 end
+function mieseries(point::SVector{3,Float64}; k, a=1, n_terms=20, expjω=false)
+    Es_list = mieseries([point]; k, a, n_terms, expjω)
+    return first(Es_list)
+end
 
-function _mieseries(point::SVector{3,Float64}, bn, cn; k, n_terms)
+function _mieseries(point::SVector{3,Float64}, bn, cn; k, n_terms, _debug::Union{Val{false}, Val{true}}=Val(false))
     x, y, z = point
     # convert to spherical coordinates
     r = sqrt(x^2 + y^2 + z^2)
@@ -67,12 +72,36 @@ function _mieseries(point::SVector{3,Float64}, bn, cn; k, n_terms)
     # compute associated Legendre functions, m=1, for l=1,..,n_term
     lf, lf_d = MieSeries.associated_legendre(cos_theta; l_max=n_terms, m=1)
     # compute scattered field in spherical coordinates
-    Es_r = -im*cos_phi*sum(@. bn*(rh_dd + rh)*lf)
-    Es_theta = cos_phi/kr*sum(@. im*bn*rh_d*sin_theta*lf_d - cn*rh*lf/sin_theta)
-    Es_phi = sin_phi/kr*sum(@. im*bn*rh_d*lf/sin_theta - cn*rh*sin_theta*lf_d)
+    # return all the terms of the series if !(_debug === Val(false))
+    func = (_debug===Val(false)) ? sum : identity
+    Es_r = -im*cos_phi*func(@. bn*(rh_dd + rh)*lf)
+    Es_theta = cos_phi/kr*func(@. im*bn*rh_d*sin_theta*lf_d - cn*rh*lf/sin_theta)
+    Es_phi = sin_phi/kr*func(@. im*bn*rh_d*lf/sin_theta - cn*rh*sin_theta*lf_d)
     # convert to cartesian coordinates
     Es_x = sin_theta*cos_phi*Es_r + cos_theta*cos_phi*Es_theta - sin_phi*Es_phi
     Es_y = sin_theta*sin_phi*Es_r + cos_theta*sin_phi*Es_theta + cos_phi*Es_phi
     Es_z = cos_theta*Es_r - sin_theta*Es_theta
-    return SVector{3,ComplexF64}(Es_x, Es_y, Es_z)
+    return Es_x, Es_y, Es_z
+end
+
+"""
+    mieseries_debug(point::SVector{3,Float64}; k, a=1, n_terms=20, expjω=false) 
+
+Same as ([`mieseries`](@ref)), but returns all the terms of the series, for each cartesian component.
+"""
+function mieseries_debug(point::SVector{3,Float64}; k, a=1, n_terms=20, expjω=false)
+    isreal(k) || @error "Mie series is not working for complex wavenumbers"
+    # compute Ricatti-Hankel functions, second kind 
+    rh, rh_d, _ = riccatihankel2_and_derivatives(1:n_terms, k*a)
+    # compute coefficients aₙ, bₙ, cₙ
+    an = [(1.0im)^(-n)*(2n + 1)/n/(n + 1) for n in 1:n_terms]
+    bn = -an.*real(rh_d)./rh_d
+    cn = -an.*real(rh)./rh
+    # compute scattered field
+    Es_x, Es_y, Es_z = _mieseries(point, bn, cn; k, n_terms, _debug=Val(true))
+    # conjugate result if exp(-jω) time-harmonic dependence is used
+    if !expjω
+        Es_x, Es_y, Es_z = conj.((Es_x,Es_y,Es_z))
+    end
+    return Es_x, Es_y, Es_z
 end

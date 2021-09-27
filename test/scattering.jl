@@ -37,3 +37,19 @@ mynorm(a) = (b=abs.(a); sqrt(b[1]^2+b[2]^2+b[3]^2))
         end
     end
 end
+
+@testset "Mie series debug mode" begin
+    a = 1          # sphere radius
+    n_terms = 80   # number of terms in Mie series
+    k = 5.5        # wavenumber
+    point = SVector(3.0, -5.0, 6.0)
+
+    Es = mieseries(point; k, a, n_terms)
+    Ex_terms, Ey_terms, Ez_terms = MieSeries.mieseries_debug(point; k, a, n_terms)
+    @test length(Ex_terms) == n_terms
+    @test length(Ey_terms) == n_terms
+    @test length(Ez_terms) == n_terms
+    @test sum(Ex_terms) ≈ Es[1]
+    @test sum(Ey_terms) ≈ Es[2]
+    @test sum(Ez_terms) ≈ Es[3]
+end
