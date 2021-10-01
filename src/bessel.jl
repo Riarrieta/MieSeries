@@ -12,7 +12,18 @@ function sphericalhankel2(nu, x)
 end
 
 """
+    sphericalhankel1(nu, x)
+
+Spherical Hankel function of the first kind, order `nu`
+and argument `x`.
+"""
+function sphericalhankel1(nu, x)
+    return conj(sphericalhankel2(nu, x))
+end
+
+"""
     sphericalhankel2_and_derivatives(nu::UnitRange, x)
+    sphericalhankel2_and_derivatives(nu::Number, x)
 
 Evaluates the spherical Hankel function of the second kind, its first and 
 second derivative, for orders `nu::UnitRange` and argument `x`.
@@ -39,6 +50,21 @@ function sphericalhankel2_and_derivatives(nu::UnitRange, x)
         n -= 1
     end
     return sph[1:len], sph_d[1:len], sph_dd
+end
+function sphericalhankel2_and_derivatives(nu::Number, x)
+    sph, sph_d, sph_dd = sphericalhankel2_and_derivatives(nu:nu, x)
+    return first(sph), first(sph_d), first(sph_dd)
+end
+
+"""
+    sphericalhankel1_and_derivatives(nu::UnitRange, x)
+    sphericalhankel1_and_derivatives(nu::Number, x)
+
+Evaluates the spherical Hankel function of the first kind, its first and 
+second derivative, for orders `nu` and argument `x`.
+"""
+function sphericalhankel1_and_derivatives(nu, x)
+    return conj.(sphericalhankel2_and_derivatives(nu, x))
 end
 
 """

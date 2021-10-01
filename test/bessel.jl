@@ -21,6 +21,11 @@ using MieSeries
     @test sh_dd[4] ≈ -0.080830878396917+0.0592250451669235im
     @test sh_dd[5] ≈ -0.005340496533806+0.2334624962970602im
 
+    for (index,i) in enumerate(nu)
+        @test MieSeries.sphericalhankel2_and_derivatives(i, x) == (sh[index], sh_d[index], sh_dd[index])
+    end
+    @test MieSeries.sphericalhankel1_and_derivatives(nu, x) == conj.((sh,sh_d,sh_dd))
+    
     sh2, sh_d2, sh_dd2 = MieSeries.sphericalhankel2_and_derivatives(1:4, x)
     @test sh2 == sh[2:end]
     @test sh_d2 == sh_d[2:end]
