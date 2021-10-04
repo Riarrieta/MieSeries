@@ -32,6 +32,8 @@ using MieSeries
     @test sh_dd2 == sh_dd[2:end]
 
     # Spherical Bessel differential equation
+    nu = 0:50
+    sh, sh_d, sh_dd = MieSeries.sphericalhankel2_and_derivatives(nu, x)
     for n in nu
         index = n+1
         @test sh_dd[index] ≈ -(2*x*sh_d[index] + (x^2 - n*(n+1))*sh[index])/x^2
@@ -48,7 +50,10 @@ end
     @test rh_d[1] ≈ -0.98747977+0.15774569im  # order 0
     @test rh_d[2] ≈ -0.44249662-0.84900038im
     @test rh_d[3] ≈ 0.32634564-0.80367387im
+
     # Riccati-Bessel differential equation
+    nu = 0:50
+    rh, rh_d, rh_dd = MieSeries.riccatihankel2_and_derivatives(nu, x)
     for n in nu
         index = n+1
         @test rh_dd[index] ≈ -(1-n*(n+1)/x^2)*rh[index]
