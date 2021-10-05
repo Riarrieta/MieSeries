@@ -32,8 +32,10 @@ Refer to: C. A. Balanis. Advanced Engineering Electromatnetics (2013), Chapter 1
 - `a`: radius of the PEC sphere.
 - `n_terms`: the number of terms to compute in the Mie series.
 - `expjω`: set to `true` (`false`) if `exp(jω)` (`exp(-jω)`) time-harmonic dependence is used.
+- `farfield`: set to `false` to compute near field `E`. Set to `true` to compute far field `E₀`. The near and far field 
+are related by `E(x) ≈ E₀(x/|x|)e^{ik|x|}/|x|` for `|x| → ∞`, assuming a `exp(-jω)` time-harmonic dependence.
 """
-function mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=false)
+function mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, farfield=false, expjω=false)
     isreal(k) || @error "Mie series is not working for complex wavenumbers"
     # compute Ricatti-Hankel functions, second kind 
     rh, rh_d, _ = riccatihankel2_and_derivatives(1:n_terms, k*a)
@@ -44,8 +46,9 @@ function mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=
     # compute scattered field
     n_points = length(mesh)
     Es = Vector{SVector{3,ComplexF64}}(undef,n_points)
+    mieseries_func = farfield ? _mieseries_farfield : _mieseries
     for i in 1:n_points
-        Es[i] = _mieseries(mesh[i], bn, cn; k, n_terms)
+        Es[i] = mieseries_func(mesh[i], bn, cn; k, n_terms)
     end
     # conjugate result if exp(-jω) time-harmonic dependence is used
     if !expjω
@@ -53,8 +56,8 @@ function mieseries(mesh::Vector{SVector{3,Float64}}; k, a=1, n_terms=20, expjω=
     end
     return Es
 end
-function mieseries(point::SVector{3,Float64}; k, a=1, n_terms=20, expjω=false)
-    Es_list = mieseries([point]; k, a, n_terms, expjω)
+function mieseries(point::SVector{3,Float64}; k, a=1, n_terms=20, farfield=false, expjω=false)
+    Es_list = mieseries([point]; k, a, n_terms, farfield, expjω)
     return first(Es_list)
 end
 
@@ -82,6 +85,44 @@ function _mieseries(point::SVector{3,Float64}, bn, cn; k, n_terms, _debug::Union
     Es_y = sin_theta*sin_phi*Es_r + cos_theta*sin_phi*Es_theta + cos_phi*Es_phi
     Es_z = cos_theta*Es_r - sin_theta*Es_theta
     return Es_x, Es_y, Es_z
+end
+
+function _mieseries_farfield(point::SVector{3,Float64}, bn, cn; k, n_terms)
+    x, y, z = point
+    # convert to spherical coordinates
+    r = sqrt(x^2 + y^2 + z^2)
+    cos_theta = z / r
+    sin_theta = sqrt(1 - cos_theta^2)
+    cos_phi = x / (r*sin_theta)
+    sin_phi = y / (r*sin_theta)
+    # compute associated Legendre functions, m=1, for l=1,..,n_term
+    lf, lf_d = MieSeries.associated_legendre(cos_theta; l_max=n_terms, m=1)
+    im_n = im.^(1:n_terms)
+    # compute scattered field in spherical coordinates
+    Es_theta = im*cos_phi/k*sum(@. im_n*(bn*sin_theta*lf_d - cn*lf/sin_theta))
+    Es_phi = im*sin_phi/k*sum(@. im_n*(bn*lf/sin_theta - cn*sin_theta*lf_d))
+    # convert to cartesian coordinates
+    Es_x = cos_theta*cos_phi*Es_theta - sin_phi*Es_phi
+    Es_y = cos_theta*sin_phi*Es_theta + cos_phi*Es_phi
+    Es_z = -sin_theta*Es_theta
+    return Es_x, Es_y, Es_z
+end
+
+"""
+    sphere_monostatic_rcs(;k, a, n_terms=20)
+
+Computes the monostatic RCS of a PEC sphere.
+# Arguments
+- `k`: wavenumber.
+- `a`: radius of the PEC sphere.
+- `n_terms`: the number of terms to compute in the Mie series.
+"""
+function sphere_monostatic_rcs(;k, a, n_terms=20)
+    λ = 2π/k
+    cn = [(-1)^n*(2n+1) for n in 1:n_terms]
+    rh, rh_d, _ = riccatihankel2_and_derivatives(1:n_terms, k*a)
+    σ_mono = λ^2/(4π)*abs2(sum(@. cn/(rh_d*rh)))
+    return σ_mono
 end
 
 """

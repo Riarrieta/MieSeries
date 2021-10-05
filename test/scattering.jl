@@ -38,6 +38,23 @@ mynorm(a) = (b=abs.(a); sqrt(b[1]^2+b[2]^2+b[3]^2))
     end
 end
 
+@testset "Far field: monostatic RCS" begin
+    TOL = 1e-3     # tolerance
+    n_terms = 80   # number of terms in Mie series
+    a = 0.1        # sphere radius
+
+    obs_point = SVector(1e-7, 1e-7, -1.)          # observation point
+    radius_in_λ = range(0.01, 1.6, length=50)
+    λ_list = a ./ radius_in_λ                     # wavelengths
+    for λ in λ_list
+        k = 2π/λ       # wavenumber
+        E_far = MieSeries.mieseries(obs_point; k, a, n_terms, farfield=true)
+        E_far_norm2 = sum(abs2.(E_far))
+        σ_mono = 4*π*E_far_norm2
+        @test abs(σ_mono-MieSeries.sphere_monostatic_rcs(;k, a, n_terms)) < TOL
+    end
+end
+
 @testset "Mie series debug mode" begin
     a = 1          # sphere radius
     n_terms = 80   # number of terms in Mie series
