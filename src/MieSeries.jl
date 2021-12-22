@@ -1,7 +1,7 @@
 module MieSeries
 using StaticArrays
 import SpecialFunctions
-import Legendre
+import AssociatedLegendrePolynomials as Legendre
 
 export mieseries, incident_planewave
 
